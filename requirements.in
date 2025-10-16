@@ -1,0 +1,17 @@
+beautifulsoup4
+gradio
+hf_xet
+httpx
+langchain
+langchain-elasticsearch
+langchain-huggingface
+langchain-postgres
+langchain-qdrant
+langchain-redis
+langchain-sqlserver
+psycopg-binary
+pyodbc
+python-dotenv
+qdrant-client
+sentence-transformers
+yarl
