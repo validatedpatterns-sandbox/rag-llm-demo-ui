@@ -17,10 +17,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
       --compile \
       -r requirements.txt
 
-COPY vector_db ./vector_db
-COPY app.py .
-COPY config.py .
-COPY .env .
+COPY . .
 
 RUN chown -R 1001:0 .
 
