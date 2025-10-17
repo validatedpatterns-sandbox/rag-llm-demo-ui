@@ -35,3 +35,18 @@ build: ## Build the container
 upload: ## Push the container to the upload registry
 	podman tag $(REGISTRY)/$(CONTAINER) $(UPLOADREGISTRY)/$(CONTAINER)
 	podman push $(UPLOADREGISTRY)/$(CONTAINER)
+
+##@ Test tasks
+
+.PHONY: super-linter
+super-linter: ## Runs super linter locally
+	rm -rf .mypy_cache
+	podman run -e RUN_LOCAL=true -e USE_FIND_ALGORITHM=true	\
+					$(DISABLE_LINTERS) \
+					-e VALIDATE_ENV=false \
+					-e VALIDATE_PYTHON_ISORT=false \
+					-e VALIDATE_PYTHON_RUFF_FORMAT=false \
+					-e VALIDATE_TRIVY=false \
+					-v $(PWD):/tmp/lint:rw,z \
+					-w /tmp/lint \
+					ghcr.io/super-linter/super-linter:slim-v8

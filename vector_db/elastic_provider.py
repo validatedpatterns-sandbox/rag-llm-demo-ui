@@ -16,6 +16,7 @@ class ElasticProvider(DBProvider):
     Elasticsearch-backed vector DB provider using LangChain's ElasticsearchStore integration.
 
     Attributes:
+        _ui_string (str): A string representation of the DB provider for the UI.
         db (ElasticsearchStore): LangChain-compatible Elasticsearch vector store.
 
     Args:
@@ -36,7 +37,11 @@ class ElasticProvider(DBProvider):
         ...     index="rag-docs",
         ...     user="elastic"
         ... )
-        >>> provider.get_relevant_documents(query="What is OpenShift?", search_type="similarity", search_kwargs={"k": 10})
+        >>> provider.get_relevant_documents(
+        ...     query="What is OpenShift?",
+        ...     search_type="similarity",
+        ...     search_kwargs={"k": 10}
+        ... )
     """
 
     def __init__(  # pylint: disable=too-many-arguments,too-many-positional-arguments

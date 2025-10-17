@@ -16,6 +16,7 @@ class PGVectorProvider(DBProvider):
     PostgreSQL with pgvector extension vector database provider.
 
     Attributes:
+        _ui_string (str): A string representation of the DB provider for the UI.
         db (PGVectorStore): LangChain-compatible PGVector client for vector storage.
 
     Args:
@@ -32,7 +33,11 @@ class PGVectorProvider(DBProvider):
         ...     url="postgresql://user:pass@localhost:5432/vector_db",
         ...     collection_name="rag_chunks"
         ... )
-        >>> provider.get_relevant_documents(query="What is OpenShift?", search_type="similarity", search_kwargs={"k": 10})
+        >>> provider.get_relevant_documents(
+        ...     query="What is OpenShift?",
+        ...     search_type="similarity",
+        ...     search_kwargs={"k": 10}
+        ... )
     """
 
     def __init__(

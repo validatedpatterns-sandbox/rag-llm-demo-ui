@@ -1,3 +1,5 @@
+"""Chat UI implementation."""
+
 from dataclasses import dataclass
 
 import gradio as gr

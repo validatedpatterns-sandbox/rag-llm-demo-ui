@@ -19,6 +19,7 @@ class MSSQLProvider(DBProvider):
     SQL Server-based vector DB provider using LangChain's SQLServer_VectorStore integration.
 
     Attributes:
+        _ui_string (str): A string representation of the DB provider for the UI.
         db (SQLServer_VectorStore): LangChain-compatible vector store.
 
     Args:
@@ -39,7 +40,11 @@ class MSSQLProvider(DBProvider):
         ...     ),
         ...     table="embedded_docs",
         ... )
-        >>> provider.get_relevant_documents(query="What is OpenShift?", search_type="similarity", search_kwargs={"k": 10})
+        >>> provider.get_relevant_documents(
+        ...     query="What is OpenShift?",
+        ...     search_type="similarity",
+        ...     search_kwargs={"k": 10}
+        ... )
     """
 
     def __init__(

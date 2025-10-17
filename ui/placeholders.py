@@ -1,3 +1,5 @@
+"""Placeholder values for the UI."""
+
 INITIAL_CHATBOT_VALUE = [
     {
         "role": "assistant",

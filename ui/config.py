@@ -1,3 +1,5 @@
+"""Configuration UI for the RAG LLM demo application."""
+
 import logging
 import re
 from dataclasses import dataclass
@@ -14,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class ConfigUI:
+class ConfigUI:  # pylint: disable=too-many-instance-attributes
     """
     A dataclass containing the config UI components.
 
@@ -60,23 +62,34 @@ def get_model_choices(llms: list[LLM]) -> list[str]:
         list[str]: The model choices.
     """
     if not llms:
-        error_message = "No LLMs configured. Environment variable LLM_URLS must be set to a list of OpenAI API-compatible endpoints."
+        error_message = (
+            "No LLMs configured. Environment variable LLM_URLS must be set to a list"
+            " of OpenAI API-compatible endpoints."
+        )
         logger.error(error_message)
         return [error_message]
 
-    model_choices = [
-        f"{model.model_id} ({llm.base_url})"
-        for llm in llms
-        for model in llm.get_models()
-    ]
+    try:
+        model_choices = [
+            f"{model.model_id} ({llm.base_url})"
+            for llm in llms
+            for model in llm.get_models()
+        ]
 
-    if not model_choices:
-        llm_urls = [str(llm.base_url) for llm in llms].join(", ")
-        error_message = f"No models found for the LLM(s). Please check the LLM URL(s) and make sure they are OpenAI API-compatible endpoints. {llm_urls}"
-        logger.error(error_message)
+        if not model_choices:
+            llm_urls = ", ".join([str(llm.base_url) for llm in llms])
+            error_message = (
+                "No models found for the LLM(s). Please check the LLM URL(s) and make"
+                f" sure they are OpenAI API-compatible endpoints. {llm_urls}"
+            )
+            logger.error(error_message)
+            model_choices = [error_message]
+
+        return model_choices
+    except Exception:  # pylint: disable=broad-exception-caught
+        error_message = "Failed to get model choices."
+        logger.error(error_message, exc_info=True)
         return [error_message]
-
-    return model_choices
 
 
 def get_llm_model_from_choice(
@@ -96,7 +109,8 @@ def get_llm_model_from_choice(
     match = re.match(r"^(.*)\s\((.*)\)$", choice)
     if not match:
         logger.error(
-            f"Invalid choice: '{choice}'. Expected format: 'model_id (http://localhost:8080)'"
+            "Invalid choice: '%s'. Expected format: 'model_id (http://localhost:8080)'",
+            choice,
         )
         return None
 
@@ -108,7 +122,10 @@ def get_llm_model_from_choice(
 
     available_urls = ", ".join([str(llm.base_url) for llm in config.llms])
     logger.error(
-        f"'{base_url}' not found in the configured LLM URLs: [{available_urls}]. Please check the LLM_URLS environment variable."
+        "'%s' not found in the configured LLM URLs: [%s]. Please check the LLM_URLS"
+        " environment variable.",
+        base_url,
+        available_urls,
     )
     return None
 
@@ -124,11 +141,19 @@ def get_db_provider_choices(db_providers: list[DBProvider]) -> list[str]:
         list[str]: The DB provider choices.
     """
     if not db_providers:
-        error_message = "No DB providers configured. Environment variable DB_PROVIDERS must be set to a list of database provider configurations."
+        error_message = (
+            "No DB providers configured. Environment variable DB_PROVIDERS must be set"
+            " to a list of database provider configurations."
+        )
         logger.error(error_message)
         return [error_message]
 
-    return [db_provider.ui_string() for db_provider in db_providers]
+    try:
+        return [db_provider.ui_string() for db_provider in db_providers]
+    except Exception:  # pylint: disable=broad-exception-caught
+        error_message = "Failed to get DB provider choices."
+        logger.error(error_message, exc_info=True)
+        return [error_message]
 
 
 def get_db_provider_from_choice(config: AppConfig, choice: str) -> Optional[DBProvider]:
@@ -146,16 +171,19 @@ def get_db_provider_from_choice(config: AppConfig, choice: str) -> Optional[DBPr
         if db_provider.ui_string() == choice:
             return db_provider
 
-    available_choices = [
-        db_provider.ui_string() for db_provider in config.db_providers
-    ].join(", ")
+    available_choices = ", ".join(
+        [db_provider.ui_string() for db_provider in config.db_providers]
+    )
     logger.error(
-        f"'{choice}' not found in the configured DB provider choices: {available_choices}. Please check the DB_PROVIDERS environment variable."
+        "'%s' not found in the configured DB provider choices: [%s]. Please check the"
+        " DB_PROVIDERS environment variable.",
+        choice,
+        available_choices,
     )
     return None
 
 
-def create_config_ui(config: AppConfig) -> ConfigUI:
+def create_config_ui(config: AppConfig) -> ConfigUI:  # pylint: disable=too-many-locals
     """
     Builds the right column of the UI, with configuration and RAG internals.
 

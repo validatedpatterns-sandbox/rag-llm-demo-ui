@@ -1,3 +1,5 @@
+"""Index UI implementation."""
+
 import functools
 
 import gradio as gr
@@ -25,7 +27,8 @@ def create_index_ui(config: AppConfig) -> gr.Blocks:
     with gr.Blocks(theme=gr.themes.Soft(), title="Configurable RAG Demo") as demo:
         gr.Markdown("# Configurable RAG Flow Demo")
         gr.Markdown(
-            "Use the configuration panel to select models and tune retrieval parameters. The right panel shows the detailed output of the RAG process."
+            "Use the configuration panel to select models and tune retrieval parameters."
+            " The right panel shows the detailed output of the RAG process."
         )
 
         with gr.Row(equal_height=False):

@@ -16,6 +16,7 @@ class RedisProvider(DBProvider):
     Redis-backed vector DB provider using RediSearch and LangChain's Redis integration.
 
     Attributes:
+        _ui_string (str): A string representation of the DB provider for the UI.
         db (RedisVectorStore): LangChain-compatible Redis vector store instance.
 
     Args:
@@ -32,7 +33,11 @@ class RedisProvider(DBProvider):
         ...     url="redis://localhost:6379",
         ...     index="validated_docs"
         ... )
-        >>> provider.get_relevant_documents(query="What is OpenShift?", search_type="similarity", search_kwargs={"k": 10})
+        >>> provider.get_relevant_documents(
+        ...     query="What is OpenShift?",
+        ...     search_type="similarity",
+        ...     search_kwargs={"k": 10}
+        ... )
     """
 
     def __init__(self, embeddings: HuggingFaceEmbeddings, url: str, index: str):

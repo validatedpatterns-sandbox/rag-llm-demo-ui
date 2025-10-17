@@ -1,3 +1,5 @@
+"""LLM implementation."""
+
 import json
 import logging
 from dataclasses import dataclass
@@ -11,6 +13,18 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class ModelMetadata:
+    """
+    A dataclass containing the model metadata.
+
+    Attributes:
+        vocab_type (int): The type of vocabulary.
+        n_vocab (int): The number of vocabulary.
+        n_ctx_train (int): The number of context training.
+        n_embd (int): The number of embedding.
+        n_params (int): The number of parameters.
+        size (int): The size of the model.
+    """
+
     vocab_type: int
     n_vocab: int
     n_ctx_train: int
@@ -21,6 +35,16 @@ class ModelMetadata:
 
 @dataclass
 class Model:
+    """
+    A dataclass containing the model information.
+
+    Attributes:
+        model_id (str): The model ID.
+        created_at (int): The creation time.
+        owned_by (str): The owner of the model.
+        metadata (ModelMetadata): The metadata of the model.
+    """
+
     model_id: str
     created_at: int
     owned_by: str
@@ -28,7 +52,22 @@ class Model:
 
 
 class LLM:
+    """
+    A class representing the LLM.
+
+    Attributes:
+        base_url (URL): The base URL of the LLM.
+        models_url (URL): The URL for the models.
+        chat_url (URL): The URL for the chat.
+    """
+
     def __init__(self, base_url: URL):
+        """
+        Initialize the LLM.
+
+        Args:
+            base_url (URL): The base URL of the LLM.
+        """
         self.base_url = base_url
         self.models_url = base_url / "models"
         self.chat_url = base_url / "chat" / "completions"
@@ -44,47 +83,44 @@ class LLM:
             Exception: If an error occurs while fetching the models.
         """
         try:
-            r = httpx.get(str(self.models_url), timeout=10)
-            r.raise_for_status()
-            data: list[dict] = r.json().get("data", [])
+            response = httpx.get(str(self.models_url), timeout=10)
+            logger.debug("GET %s returned %s.", str(self.models_url), response.json())
+            response.raise_for_status()
+            data: list[dict] = response.json().get("data", [])
 
-            logger.info(f"data: {data}")
+            models = []
+            for raw_model in data:
+                parsed_model = self._parse_model(raw_model)
+                if parsed_model:
+                    models.append(parsed_model)
 
-            return [
-                Model(
-                    model_id=model.get("id"),
-                    created_at=model.get("created"),
-                    owned_by=model.get("owned_by"),
-                    metadata=ModelMetadata(**model.get("meta")),
-                )
-                for model in data
-                if self._is_valid_model(model)
-            ]
-        except Exception as e:
-            logger.error(f"Failed to fetch models from {self.models_url}. Error: {e}")
-            return []
+            return models
+        except Exception:
+            logger.error("Failed to fetch models from %s.", str(self.models_url))
+            raise
 
-    def _is_valid_model(self, model: dict) -> bool:
+    def _parse_model(self, raw_model: dict) -> Optional[Model]:
         """
-        Check if the model is valid.
+        Parse the model from the raw model.
 
         Args:
-            model (dict): The model to check.
+            raw_model (dict): The raw model.
 
         Returns:
-            bool: True if the model is valid, False otherwise.
+            Optional[Model]: The parsed model if successful, None otherwise.
         """
-        return (
-            model.get("object")
-            and model.get(
-                "object",
+        try:
+            if raw_model["object"] != "model":
+                raise ValueError(f"Invalid model object: {raw_model['object']}")
+            return Model(
+                model_id=raw_model["id"],
+                created_at=raw_model["created"],
+                owned_by=raw_model["owned_by"],
+                metadata=ModelMetadata(**raw_model["meta"]),
             )
-            == "model"
-            and model.get("id")
-            and model.get("created")
-            and model.get("owned_by")
-            and model.get("meta")
-        )
+        except Exception as exception:
+            logger.error("Failed to parse model %s.", raw_model)
+            raise exception
 
     def chat(self, model: str, prompt: str) -> Optional[str]:
         """
@@ -96,9 +132,12 @@ class LLM:
 
         Returns:
             Optional[str]: The response from the LLM if successful, None otherwise.
+
+        Raises:
+            Exception: If an error occurs while chatting with the LLM.
         """
         try:
-            r = httpx.post(
+            response = httpx.post(
                 str(self.chat_url),
                 json={
                     "model": model,
@@ -106,11 +145,15 @@ class LLM:
                 },
                 timeout=300,
             )
-            r.raise_for_status()
-            return r.json().get("choices")[0].get("message").get("content")
-        except Exception as e:
-            logger.error(f"Failed to chat with {model}. Error: {e}")
-            return None
+            response.raise_for_status()
+            return response.json().get("choices")[0].get("message").get("content")
+        except Exception:
+            logger.error(
+                "Failed to chat with LLM %s. Model: %s.",
+                str(self.base_url),
+                model,
+            )
+            raise
 
     def chat_stream(self, model: str, prompt: str) -> Generator[str, None, None]:
         """
@@ -124,6 +167,10 @@ class LLM:
 
         Returns:
             Generator[str, None, None]: A generator that yields incremental text chunks.
+
+        Raises:
+            Exception: If an error occurs while streaming chat completions and the
+            fallback to non-streaming fails.
         """
         try:
             with httpx.stream(
@@ -135,9 +182,9 @@ class LLM:
                     "stream": True,
                 },
                 timeout=300,
-            ) as r:
-                r.raise_for_status()
-                for line in r.iter_lines():
+            ) as response:
+                response.raise_for_status()
+                for line in response.iter_lines():
                     if not line:
                         continue
                     # Expect lines like: b"data: {json}" or b"data: [DONE]"
@@ -154,18 +201,23 @@ class LLM:
                             )
                             if delta:
                                 yield delta
-                        except Exception as parse_err:
-                            logger.debug(
-                                f"Failed to parse streaming chunk: {parse_err}"
+                        except Exception:  # pylint: disable=broad-exception-caught
+                            logger.warning(
+                                "Failed to parse streaming chunk. Data: %s.",
+                                data,
+                                exc_info=True,
                             )
                 return
-        except Exception as e:
+        except Exception:  # pylint: disable=broad-exception-caught
             logger.error(
-                f"Streaming failed for model {model}. Falling back to non-streaming. Error: {e}"
+                "Streaming failed for LLM %s. Model: %s."
+                " Falling back to non-streaming.",
+                str(self.base_url),
+                model,
+                exc_info=True,
             )
 
-        # Fallback to non-streaming
-        full = self.chat(model, prompt)
-        if not full:
+        chat_response = self.chat(model, prompt)
+        if not chat_response:
             return
-        yield full
+        yield chat_response

@@ -1,5 +1,7 @@
+"""Event handlers implementation."""
+
 import logging
-from typing import Optional
+from collections.abc import Generator
 
 import gradio as gr
 from langchain_core.documents import Document
@@ -16,7 +18,8 @@ logger = logging.getLogger(__name__)
 
 PROMPT_TEMPLATE = """
 <s>[INST]
-You are a helpful AI assistant. Your task is to answer the user's question taking into account the context documents and the chat history.
+You are a helpful AI assistant. Your task is to answer the user's question taking into account
+the context documents and the chat history.
 
 ---
 Context Documents:
@@ -33,17 +36,19 @@ User's Question:
 
 def update_search_kwargs_visibility(
     search_type: str,
-) -> list[gr.Group, gr.Group, gr.Group]:
+) -> list[gr.Group]:
     """
     This function is triggered when the search type radio button changes.
     It returns a dictionary of updates for the visibility of the different
     search parameter groups.
 
     Args:
-        search_type (str): The type of search to perform. (similarity, similarity_score_threshold, mmr)
+        search_type (str): The type of search to perform.
+        (One of: "similarity", "similarity_score_threshold", "mmr")
 
     Returns:
-        list[gr.Group, gr.Group, gr.Group]: A list of the visibility of the different search parameter groups.
+        list[gr.Group]: A list of the visibility of the different
+        search parameter groups.
     """
     return [
         gr.Group(visible=search_type == "similarity"),
@@ -68,7 +73,7 @@ def clear_chat_and_internals() -> list[gr.update]:
     ]
 
 
-def _retrieve_documents(
+def _retrieve_documents(  # pylint: disable=too-many-arguments,too-many-positional-arguments
     config: AppConfig,
     chat_input: str,
     rag_provider_dd: str,
@@ -98,7 +103,7 @@ def _retrieve_documents(
     """
     db_provider = get_db_provider_from_choice(config, rag_provider_dd)
     if not db_provider:
-        logger.error(f"Invalid RAG provider: {rag_provider_dd}")
+        logger.error("Invalid RAG provider: %s", rag_provider_dd)
         return []
 
     search_kwargs = _get_search_kwargs(
@@ -111,7 +116,10 @@ def _retrieve_documents(
     )
 
     logger.debug(
-        f"Searching '{db_provider.ui_string()}' with search type '{search_type_radio}' and search kwargs '{search_kwargs}'"
+        "Searching '%s' with search type '%s' and search kwargs '%s'",
+        db_provider.ui_string(),
+        search_type_radio,
+        search_kwargs,
     )
 
     return db_provider.get_relevant_documents(
@@ -119,7 +127,7 @@ def _retrieve_documents(
     )
 
 
-def _get_search_kwargs(
+def _get_search_kwargs(  # pylint: disable=too-many-arguments,too-many-positional-arguments
     search_type_radio: str,
     similarity_k: int,
     threshold_score: float,
@@ -150,7 +158,7 @@ def _get_search_kwargs(
         case "mmr":
             return {"k": mmr_k, "fetch_k": mmr_fetch_k, "lambda_mult": mmr_lambda}
         case _:
-            logger.error(f"Invalid search type: {search_type_radio}")
+            logger.error("Invalid search type: %s", search_type_radio)
             return {}
 
 
@@ -176,31 +184,7 @@ def _compile_final_prompt(
     )
 
 
-def _send_final_prompt_to_llm(
-    config: AppConfig,
-    llm_model_dd: str,
-    final_prompt: str,
-) -> Optional[str]:
-    """
-    Sends the final prompt to the LLM.
-
-    Args:
-        config (AppConfig): The configuration object.
-        llm_model_dd: The selected LLM model.
-        final_prompt (str): The final prompt.
-
-    Returns:
-        Optional[str]: The response from the LLM if successful, None otherwise.
-    """
-    llm_model = get_llm_model_from_choice(config, llm_model_dd)
-    if not llm_model:
-        logger.error(f"Invalid LLM model: {llm_model_dd}")
-        return None
-    llm, model = llm_model
-    return llm.chat(model, final_prompt)
-
-
-def submit_chat_message(
+def submit_chat_message(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals
     config: AppConfig,
     chat_input: str,
     chatbot: list[dict],
@@ -212,7 +196,7 @@ def submit_chat_message(
     mmr_k: int,
     mmr_fetch_k: int,
     mmr_lambda: float,
-) -> list[gr.update]:
+) -> Generator[list[gr.update], None, None]:
     """
     Submits the user's chat message to the RAG pipeline.
 
@@ -236,7 +220,8 @@ def submit_chat_message(
         mmr_lambda (float): The mmr lambda.
 
     Returns:
-        list[gr.update]: A list of the updates to the different components.
+        Generator[list[gr.update], None, None]:
+        A generator that yields the updates to the different components.
     """
 
     # 1) Immediately reflect user message in chat history, clear input,
@@ -284,7 +269,8 @@ def submit_chat_message(
         error_history = user_first_history + [
             {
                 "role": "assistant",
-                "content": "An error occurred while getting the response from the LLM. Please try again.",
+                "content": "An error occurred while getting the response from the LLM."
+                " Please try again.",
             }
         ]
         yield [
@@ -316,8 +302,8 @@ def submit_chat_message(
                 gr.update(value=rag_docs),
                 gr.update(value=final_prompt),
             ]
-    except Exception as e:
-        logger.error(f"Error while streaming LLM response: {e}")
+    except Exception:  # pylint: disable=broad-exception-caught
+        logger.error("Error while streaming LLM response.", exc_info=True)
         assistant_history[-1][
             "content"
         ] = "An error occurred while streaming the response. Please try again."

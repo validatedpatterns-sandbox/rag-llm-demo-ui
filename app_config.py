@@ -134,54 +134,61 @@ class AppConfig:
             {
                 "type": "mssql",
                 "table": "docs",
-                "connection_string": "Driver={ODBC Driver 18 for SQL Server}; Server=localhost,1433; Database=embeddings; UID=sa; PWD=StrongPassword!; TrustServerCertificate=yes; Encrypt=no;",
+                "connection_string": "Driver={ODBC Driver 18 for SQL Server}; \
+Server=localhost,1433; \
+Database=embeddings; \
+UID=sa; \
+PWD=StrongPassword!; \
+TrustServerCertificate=yes; \
+Encrypt=no;",
                 "embedding_model": "sentence-transformers/all-mpnet-base-v2"
             }
             ```
         """
         try:
-            db_type = provider.get("type").upper()
-            embeddings = HuggingFaceEmbeddings(
-                model_name=provider.get("embedding_model")
-            )
+            db_type = provider["type"].upper()
+            embeddings = HuggingFaceEmbeddings(model_name=provider["embedding_model"])
 
             match db_type:
                 case "QDRANT":
                     return QdrantProvider(
-                        embeddings, provider.get("url"), provider.get("collection")
+                        embeddings, provider["url"], provider["collection"]
                     )
                 case "REDIS":
                     return RedisProvider(
                         embeddings,
-                        provider.get("url"),
-                        provider.get("index"),
+                        provider["url"],
+                        provider["index"],
                     )
                 case "ELASTIC":
                     return ElasticProvider(
                         embeddings,
-                        provider.get("url"),
-                        provider.get("password"),
-                        provider.get("index"),
-                        provider.get("user"),
+                        provider["url"],
+                        provider["password"],
+                        provider["index"],
+                        provider["user"],
                     )
                 case "PGVECTOR":
                     return PGVectorProvider(
                         embeddings,
-                        provider.get("url"),
-                        provider.get("collection"),
+                        provider["url"],
+                        provider["collection"],
                     )
                 case "MSSQL":
                     return MSSQLProvider(
                         embeddings,
-                        provider.get("connection_string"),
-                        provider.get("table"),
+                        provider["connection_string"],
+                        provider["table"],
                     )
+                case _:
+                    raise ValueError(f"Invalid database type: {db_type}")
 
-        except Exception as e:
+        except Exception:
             logger.error(
-                "Failed to initialize database provider: %s. Provider: %s", e, provider
+                f"Failed to initialize database provider: '{db_type}'. "
+                "Check the DB_PROVIDERS environment variable."
             )
-            raise ValueError("Failed to initialize database provider")
+            raise
 
     @staticmethod
     def load() -> "AppConfig":
@@ -213,16 +220,16 @@ class AppConfig:
                 AppConfig._init_db_provider(provider, logger)
                 for provider in json.loads(get("DB_PROVIDERS"))
             ]
-        except Exception as e:
-            logger.error("Failed to initialize database providers: %s", e)
-            raise ValueError("Failed to initialize database providers")
+        except Exception:
+            logger.error("Failed to initialize database providers.")
+            raise
 
         # LLM providers
         try:
             llms = [LLM(URL(url)) for url in json.loads(get("LLM_URLS"))]
-        except Exception as e:
-            logger.error("Failed to initialize LLM providers: %s", e)
-            raise ValueError("Failed to initialize LLM providers")
+        except Exception:
+            logger.error("Failed to initialize LLM providers.")
+            raise
 
         return AppConfig(
             db_providers=db_providers,

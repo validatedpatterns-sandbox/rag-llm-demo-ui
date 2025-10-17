@@ -1,3 +1,5 @@
+"""Main application entry point."""
+
 from app_config import AppConfig
 from ui.index import create_index_ui
 

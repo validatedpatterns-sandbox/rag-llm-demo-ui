@@ -25,11 +25,11 @@ A simple Gradio app that demonstrates a configurable Retrieval-Augmented Generat
 
 The application follows a standard RAG pattern:
 
-1.  **User Query**: The user asks a question in the chat interface.
-2.  **Document Retrieval**: The app converts the query into an embedding and searches the selected vector database to find the most relevant document chunks.
-3.  **Prompt Augmentation**: A prompt is constructed for the LLM, containing the original user query and the content of the retrieved documents as context.
-4.  **LLM Generation**: The augmented prompt is sent to the selected LLM, which generates a response based on the provided context.
-5.  **Stream to UI**: The response is streamed back to the user interface.
+1. **User Query**: The user asks a question in the chat interface.
+2. **Document Retrieval**: The app converts the query into an embedding and searches the selected vector database to find the most relevant document chunks.
+3. **Prompt Augmentation**: A prompt is constructed for the LLM, containing the original user query and the content of the retrieved documents as context.
+4. **LLM Generation**: The augmented prompt is sent to the selected LLM, which generates a response based on the provided context.
+5. **Stream to UI**: The response is streamed back to the user interface.
 
 ## Requirements
 
@@ -39,57 +39,57 @@ The application follows a standard RAG pattern:
 
 ## Quickstart (Local)
 
-1.  **Set up the Environment**:
-    Create and activate the Conda environment.
+1. **Set up the Environment**:
+   Create and activate the Conda environment.
 
-    ```bash
-    conda env create -f environment.yaml
-    conda activate rag-llm-demo-ui
-    ```
+   ```bash
+   conda env create -f environment.yaml
+   conda activate rag-llm-demo-ui
+   ```
 
-2.  **Configure your settings**:
-    Copy the example environment file.
+2. **Configure your settings**:
+   Copy the example environment file.
 
-    ```bash
-    cp .env.example .env
-    ```
+   ```bash
+   cp .env.example .env
+   ```
 
-    Now you can edit .env with your LLM and DB provider URLs/credentials. This file is explicitly ignored in the [.gitignore](.gitignore). Even so, avoid adding any sensitive credentials to this file as a best practice.
+   Now you can edit .env with your LLM and DB provider URLs/credentials. This file is explicitly ignored in the [.gitignore](.gitignore). Even so, avoid adding any sensitive credentials to this file as a best practice.
 
-    You can also export the variables directly in your shell:
+   You can also export the variables directly in your shell:
 
-    ```bash
-    export LOG_LEVEL="INFO"
-    export LLM_URLS='["http://localhost:1234/v1"]'
-    export DB_PROVIDERS='[{"type": "qdrant", "collection": "docs", "url": "http://localhost:6333", "embedding_model": "sentence-transformers/all-mpnet-base-v2"}]'
-    ```
+   ```bash
+   export LOG_LEVEL="INFO"
+   export LLM_URLS='["http://localhost:1234/v1"]'
+   export DB_PROVIDERS='[{"type": "qdrant", "collection": "docs", "url": "http://localhost:6333", "embedding_model": "sentence-transformers/all-mpnet-base-v2"}]'
+   ```
 
-3.  **Run the app**:
-    ```bash
-    make run
-    ```
-    The UI will be available at [`http://localhost:7860`](http://localhost:7860).
+3. **Run the app**:
+   ```bash
+   make run
+   ```
+   The UI will be available at [`http://localhost:7860`](http://localhost:7860).
 
 ## Quickstart (Container)
 
-1.  **Build the container image**:
+1. **Build the container image**:
 
-    ```bash
-    make build
-    ```
+   ```bash
+   make build
+   ```
 
-2.  **Run the container**:
-    The following command runs the container and maps it to your host's network, which is convenient for connecting to other services running on `localhost` (like an LLM or database).
+2. **Run the container**:
+   The following command runs the container and maps it to your host's network, which is convenient for connecting to other services running on `localhost` (like an LLM or database).
 
-    ```bash
-    podman run --rm --network host \
-      -e LOG_LEVEL="INFO" \
-      -e LLM_URLS='["http://localhost:1234/v1"]' \
-      -e DB_PROVIDERS='[{"type":"qdrant","collection":"docs","url":"http://localhost:6333","embedding_model":"sentence-transformers/all-mpnet-base-v2"}]' \
-      localhost/rag-llm-demo-ui:latest
-    ```
+   ```bash
+   podman run --rm --network host \
+     -e LOG_LEVEL="INFO" \
+     -e LLM_URLS='["http://localhost:1234/v1"]' \
+     -e DB_PROVIDERS='[{"type":"qdrant","collection":"docs","url":"http://localhost:6333","embedding_model":"sentence-transformers/all-mpnet-base-v2"}]' \
+     localhost/rag-llm-demo-ui:latest
+   ```
 
-    The UI will be available at `http://localhost:7860`.
+   The UI will be available at `http://localhost:7860`.
 
 ## Configuration
 

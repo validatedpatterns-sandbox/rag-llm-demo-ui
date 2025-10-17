@@ -18,6 +18,7 @@ class QdrantProvider(DBProvider):
     Qdrant-backed vector database provider.
 
     Attributes:
+        _ui_string (str): A string representation of the DB provider for the UI.
         db (QdrantVectorStore): LangChain-compatible vector store.
 
     Args:
@@ -34,7 +35,11 @@ class QdrantProvider(DBProvider):
         ...     url="http://localhost:6333",
         ...     collection="docs",
         ... )
-        >>> provider.get_relevant_documents(query="What is OpenShift?", search_type="similarity", search_kwargs={"k": 10})
+        >>> provider.get_relevant_documents(
+        ...     query="What is OpenShift?",
+        ...     search_type="similarity",
+        ...     search_kwargs={"k": 10}
+        ... )
     """
 
     def __init__(
