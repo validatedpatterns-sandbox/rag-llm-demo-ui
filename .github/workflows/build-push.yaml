@@ -1,0 +1,107 @@
+name: Build and push to quay
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: read
+
+env:
+  REGISTRY: localhost
+  NAME: rag-llm-demo-ui
+  TAG: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || (github.ref_name == 'main' && 'latest' || github.ref_name) }}
+  UPLOADREGISTRY: quay.io/validatedpatterns
+
+jobs:
+  build-container:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Free up storage
+        run: sudo rm -rf /usr/local/lib/android
+
+      - name: Build container and push to local registry
+        env:
+          CONTAINER: ${{ env.NAME }}:${{ env.TAG }}
+        run: |
+          make build
+          podman push "${CONTAINER}" "docker-archive:/tmp/image.tar:${CONTAINER}"
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-${{ github.run_id }}
+          path: /tmp/image.tar
+          retention-days: 1
+
+  push-container:
+    needs: [build-container]
+    if: github.event_name != 'pull_request'
+
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # This is used to complete the identity challenge
+      # with sigstore/fulcio when running outside of PRs.
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Download image
+        uses: actions/download-artifact@v5
+        with:
+          name: image-${{ github.run_id }}
+          path: /tmp
+
+      - name: Load image into local containers-storage
+        run: podman pull docker-archive:/tmp/image.tar
+
+      - name: Log into Quay
+        env:
+          USERNAME: ${{ secrets.QUAY_USERNAME }}
+          PASSWORD: ${{ secrets.QUAY_PASSWORD }}
+        run: |
+          podman login -u "${USERNAME}" -p "${PASSWORD}" quay.io
+
+      - name: Push image to Quay
+        id: image-push
+        env:
+          CONTAINER: ${{ env.NAME }}:${{ env.TAG }}
+        run: |
+          make upload
+          DIGEST=$(skopeo inspect --format "{{.Digest}}" "docker://${UPLOADREGISTRY}/${CONTAINER}")
+          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@d58896d6a1865668819e1d91763c7751a165e159 # v3.9.2
+        with:
+          cosign-release: "v2.2.4"
+
+      # Cosign expects the docker config.json for registry authentication so we must
+      # copy it from buildah
+      - name: Sign the published Docker image
+        env:
+          CONTAINER: ${{ env.NAME }}:${{ env.TAG }}
+          DIGEST: ${{ steps.image-push.outputs.digest }}
+        run: |
+          cat "${XDG_RUNTIME_DIR}/containers/auth.json" > ~/.docker/config.json
+          cosign sign --yes "${UPLOADREGISTRY}/${CONTAINER}@${DIGEST}"
