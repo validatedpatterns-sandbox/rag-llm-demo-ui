@@ -178,4 +178,4 @@ Common development tasks are available as `make` commands:
 
 ## License
 
-This project is licensed under the [Apcache V2.0 License](LICENSE).
+This project is licensed under the [Apache Version 2.0 License](LICENSE).
