@@ -30,6 +30,8 @@ class AppConfig:
 
     db_providers: list[DBProvider]
     llms: list[LLM]
+    host: str
+    port: int
 
     @staticmethod
     def _get_required_env_var(key: str) -> str:
@@ -234,4 +236,6 @@ Encrypt=no;",
         return AppConfig(
             db_providers=db_providers,
             llms=llms,
+            host=get("HOST"),
+            port=int(get("PORT")),
         )
