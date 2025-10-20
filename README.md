@@ -62,6 +62,8 @@ The application follows a standard RAG pattern:
    export LOG_LEVEL="INFO"
    export LLM_URLS='["http://localhost:1234/v1"]'
    export DB_PROVIDERS='[{"type": "qdrant", "collection": "docs", "url": "http://localhost:6333", "embedding_model": "sentence-transformers/all-mpnet-base-v2"}]'
+   export HOST="0.0.0.0"
+   export PORT="7860"
    ```
 
 3. **Run the app**:

@@ -24,6 +24,7 @@ def create_index_ui(config: AppConfig) -> gr.Blocks:
     Returns:
         gr.Blocks: The index UI.
     """
+    demo: gr.Blocks
     with gr.Blocks(theme=gr.themes.Soft(), title="Configurable RAG Demo") as demo:
         gr.Markdown("# Configurable RAG Flow Demo")
         gr.Markdown(
