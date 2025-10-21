@@ -81,3 +81,12 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+route:
+  enabled: true
+
+consoleLink:
+  enabled: true
+
+global:
+  localClusterDomain: apps.example.com
