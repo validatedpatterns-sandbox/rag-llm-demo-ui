@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "rag-llm-frontend.fullname" . }}
+  labels:
+    {{- include "rag-llm-frontend.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "rag-llm-frontend.selectorLabels" . | nindent 4 }}
