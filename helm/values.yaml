@@ -1,0 +1,83 @@
+replicaCount: 1
+
+image:
+  repository: quay.io/validatedpatterns/rag-llm-demo-ui
+  pullPolicy: Always
+  tag: latest
+
+env:
+  - name: LOG_LEVEL
+    value: info
+  - name: HOST
+    value: 0.0.0.0
+  - name: LLM_URLS
+    value: '[]'
+    # value: '["http://cpu-inference-service-predictor/v1"]'
+  - name: DB_PROVIDERS
+    value: '[]'
+    # valueFrom:
+    #   secretKeyRef:
+    #     name: rag-llm-frontend-secret
+    #     key: db_providers
+
+dbProvidersSecret: {}
+  # vault:
+  #   - key: mssql
+  #     field: sapassword
+  # providers:
+  #   - type: qdrant
+  #     collection: docs
+  #     url: http://qdrant-service:6333
+  #     embedding_model: sentence-transformers/all-mpnet-base-v2
+  #   - type: mssql
+  #     table: docs
+  #     connection_string: >-
+  #       Driver={ODBC Driver 18 for SQL Server};
+  #       Server=mssql-service,1433;
+  #       Database=embeddings;
+  #       UID=sa;
+  #       PWD={{ .mssql_sapassword }};
+  #       TrustServerCertificate=yes;
+  #       Encrypt=no;
+  #     embedding_model: sentence-transformers/all-mpnet-base-v2
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 7860
+
+resources: {}
+
+livenessProbe:
+  httpGet:
+    path: /
+    port: http
+readinessProbe:
+  httpGet:
+    path: /
+    port: http
+
+volumes: []
+volumeMounts: []
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

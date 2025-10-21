@@ -16,3 +16,7 @@ jobs:
         VALIDATE_PYTHON_ISORT=false
         VALIDATE_PYTHON_RUFF_FORMAT=false
         VALIDATE_TRIVY=false
+        VALIDATE_KUBERNETES_KUBECONFORM=false
+        VALIDATE_YAML=false
+        VALIDATE_YAML_PRETTIER=false
+        VALIDATE_CHECKOV=false

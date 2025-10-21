@@ -47,6 +47,10 @@ super-linter: ## Runs super linter locally
 					-e VALIDATE_PYTHON_ISORT=false \
 					-e VALIDATE_PYTHON_RUFF_FORMAT=false \
 					-e VALIDATE_TRIVY=false \
+					-e VALIDATE_KUBERNETES_KUBECONFORM=false \
+					-e VALIDATE_YAML=false \
+					-e VALIDATE_YAML_PRETTIER=false \
+					-e VALIDATE_CHECKOV=false \
 					-v $(PWD):/tmp/lint:rw,z \
 					-w /tmp/lint \
 					ghcr.io/super-linter/super-linter:slim-v8

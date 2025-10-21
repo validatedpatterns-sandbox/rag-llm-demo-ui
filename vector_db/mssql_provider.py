@@ -7,7 +7,6 @@ from typing import Optional
 import pyodbc
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_sqlserver import SQLServer_VectorStore
-from yarl import URL
 
 from vector_db.db_provider import DBProvider
 
@@ -72,13 +71,15 @@ class MSSQLProvider(DBProvider):
             embedding_length=self.embedding_length,
         )
 
-        parse_url = URL(self._extract_server_address(connection_string))
-        sanitized_url = f"{parse_url.host}:{parse_url.port or 1433}"
-        self._ui_string = f"MSSQL at {sanitized_url}"
+        parse_server = self._extract_server_address(connection_string).split(",")
+        host = parse_server[0]
+        port = parse_server[1] if len(parse_server) > 1 else 1433
+        self._ui_string = f"MSSQL at {host}:{port}"
 
         logger.info(
-            "Connected to MSSQL instance at %s (table: %s)",
-            sanitized_url,
+            "Connected to MSSQL instance at %s:%s (table: %s)",
+            host,
+            port,
             table,
         )
 

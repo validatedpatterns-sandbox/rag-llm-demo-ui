@@ -1,0 +1,6 @@
+apiVersion: v2
+name: rag-llm-demo-ui
+description: The helm chart for using the rag-llm-demo-ui app
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
