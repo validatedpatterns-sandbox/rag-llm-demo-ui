@@ -107,7 +107,7 @@ def get_llm_model_from_choice(config: AppConfig, choice: str) -> tuple[LLM, str]
 
         for llm in config.llms:
             if str(llm.base_url) == base_url:
-                if model_id in llm.models:
+                if model_id in [model.model_id for model in llm.models]:
                     return llm, model_id
                 raise ValueError(
                     f"Model '{model_id}' not found for LLM: '{llm.base_url}'"
