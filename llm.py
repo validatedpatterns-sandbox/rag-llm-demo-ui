@@ -57,8 +57,7 @@ class LLM:
 
     Attributes:
         base_url (URL): The base URL of the LLM.
-        models_url (URL): The URL for the models.
-        chat_url (URL): The URL for the chat.
+        models (list[Model]): The available models for the LLM.
     """
 
     def __init__(self, base_url: URL):
@@ -69,10 +68,11 @@ class LLM:
             base_url (URL): The base URL of the LLM.
         """
         self.base_url = base_url
-        self.models_url = base_url / "models"
-        self.chat_url = base_url / "chat" / "completions"
+        self._models_url = base_url / "models"
+        self._chat_url = base_url / "chat" / "completions"
+        self.models = self._get_models()
 
-    def get_models(self) -> list[Model]:
+    def _get_models(self) -> list[Model]:
         """
         Get the available models for the LLM.
 
@@ -83,8 +83,8 @@ class LLM:
             Exception: If an error occurs while fetching the models.
         """
         try:
-            response = httpx.get(str(self.models_url), timeout=10)
-            logger.debug("GET %s returned %s.", str(self.models_url), response.json())
+            response = httpx.get(str(self._models_url), timeout=10)
+            logger.debug("GET %s returned %s.", str(self._models_url), response.json())
             response.raise_for_status()
             data: list[dict] = response.json().get("data", [])
 
@@ -96,7 +96,7 @@ class LLM:
 
             return models
         except Exception:
-            logger.error("Failed to fetch models from %s.", str(self.models_url))
+            logger.error("Failed to fetch models from %s.", str(self._models_url))
             raise
 
     def _parse_model(self, raw_model: dict) -> Optional[Model]:
@@ -138,7 +138,7 @@ class LLM:
         """
         try:
             response = httpx.post(
-                str(self.chat_url),
+                str(self._chat_url),
                 json={
                     "model": model,
                     "messages": [{"role": "user", "content": prompt}],
@@ -175,7 +175,7 @@ class LLM:
         try:
             with httpx.stream(
                 "POST",
-                str(self.chat_url),
+                str(self._chat_url),
                 json={
                     "model": model,
                     "messages": [{"role": "user", "content": prompt}],

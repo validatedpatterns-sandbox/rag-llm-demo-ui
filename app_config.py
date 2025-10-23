@@ -222,6 +222,11 @@ Encrypt=no;",
                 AppConfig._init_db_provider(provider, logger)
                 for provider in json.loads(get("DB_PROVIDERS"))
             ]
+            if not db_providers:
+                raise ValueError(
+                    "No database providers configured. Environment variable DB_PROVIDERS must be"
+                    " set to a list of database provider configurations."
+                )
         except Exception:
             logger.error("Failed to initialize database providers.")
             raise
@@ -229,6 +234,18 @@ Encrypt=no;",
         # LLM providers
         try:
             llms = [LLM(URL(url)) for url in json.loads(get("LLM_URLS"))]
+            if not llms:
+                raise ValueError(
+                    "No LLM providers configured. Environment variable LLM_URLS must be set to a"
+                    " list of LLM provider URLs."
+                )
+            for llm in llms:
+                if not llm.models:
+                    raise ValueError(
+                        f"No models found for the LLM provider: '{llm.base_url}'."
+                        " Ensure that the LLM provider is reachable and supports OpenAI"
+                        " API-compatible endpoints."
+                    )
         except Exception:
             logger.error("Failed to initialize LLM providers.")
             raise

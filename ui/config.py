@@ -3,7 +3,6 @@
 import logging
 import re
 from dataclasses import dataclass
-from typing import Optional
 
 import gradio as gr
 
@@ -51,112 +50,100 @@ class ConfigUI:  # pylint: disable=too-many-instance-attributes
     rag_final_prompt: gr.Code
 
 
-def get_model_choices(llms: list[LLM]) -> list[str]:
+def get_model_choices(config: AppConfig) -> list[str]:
     """
     Get the model choices for the LLM.
 
     Args:
-        llms (list[LLM]): The list of LLM providers.
+        config (AppConfig): The configuration object.
 
     Returns:
         list[str]: The model choices.
-    """
-    if not llms:
-        error_message = (
-            "No LLMs configured. Environment variable LLM_URLS must be set to a list"
-            " of OpenAI API-compatible endpoints."
-        )
-        logger.error(error_message)
-        return [error_message]
 
+    Raises:
+        ValueError: If no models choices are available.
+    """
     try:
         model_choices = [
             f"{model.model_id} ({llm.base_url})"
-            for llm in llms
-            for model in llm.get_models()
+            for llm in config.llms
+            for model in llm.models
         ]
 
         if not model_choices:
-            llm_urls = ", ".join([str(llm.base_url) for llm in llms])
-            error_message = (
-                "No models found for the LLM(s). Please check the LLM URL(s) and make"
-                f" sure they are OpenAI API-compatible endpoints. {llm_urls}"
-            )
-            logger.error(error_message)
-            model_choices = [error_message]
+            raise ValueError("No models choices available.")
 
         return model_choices
-    except Exception:  # pylint: disable=broad-exception-caught
-        error_message = "Failed to get model choices."
-        logger.error(error_message, exc_info=True)
-        return [error_message]
+    except Exception:
+        logger.error("Failed to get model choices.")
+        raise
 
 
-def get_llm_model_from_choice(
-    config: AppConfig, choice: str
-) -> Optional[tuple[LLM, str]]:
+def get_llm_model_from_choice(config: AppConfig, choice: str) -> tuple[LLM, str]:
     """
     Get the LLM and model from the choice.
+
+    Example of choice: "model_id (http://localhost:8080)"
 
     Args:
         config (AppConfig): The configuration object.
         choice (str): The choice of LLM.
 
     Returns:
-        Optional[tuple[LLM, str]]: The LLM and model if found, None otherwise.
+        tuple[LLM, str]: The LLM and model.
+
+    Raises:
+        ValueError: If the choice is invalid or the LLM or model is not found.
     """
-    # Example choice: "model_id (http://localhost:8080)"
-    match = re.match(r"^(.*)\s\((.*)\)$", choice)
-    if not match:
-        logger.error(
-            "Invalid choice: '%s'. Expected format: 'model_id (http://localhost:8080)'",
-            choice,
-        )
-        return None
+    try:
+        match = re.match(r"^(.*)\s\((.*)\)$", choice)
+        if not match:
+            raise ValueError(
+                f"Invalid choice: '{choice}'. Expected format: 'model_id (http://localhost:8080)'"
+            )
 
-    base_url = match.group(2)
+        model_id = match.group(1)
+        base_url = match.group(2)
 
-    for llm in config.llms:
-        if str(llm.base_url) == base_url:
-            return llm, match.group(1)
+        for llm in config.llms:
+            if str(llm.base_url) == base_url:
+                if model_id in llm.models:
+                    return llm, model_id
+                raise ValueError(
+                    f"Model '{model_id}' not found for LLM: '{llm.base_url}'"
+                )
+        raise ValueError(f"LLM not found for base URL: '{base_url}'")
 
-    available_urls = ", ".join([str(llm.base_url) for llm in config.llms])
-    logger.error(
-        "'%s' not found in the configured LLM URLs: [%s]. Please check the LLM_URLS"
-        " environment variable.",
-        base_url,
-        available_urls,
-    )
-    return None
+    except Exception:
+        logger.error("Failed to get LLM model from choice '%s'.", choice)
+        raise
 
 
-def get_db_provider_choices(db_providers: list[DBProvider]) -> list[str]:
+def get_db_provider_choices(config: AppConfig) -> list[str]:
     """
     Get the DB provider choices.
 
     Args:
-        db_providers (list[DBProvider]): The list of DB providers.
+        config (AppConfig): The configuration object.
 
     Returns:
         list[str]: The DB provider choices.
+
+    Raises:
+        ValueError: If no DB provider choices are available.
     """
-    if not db_providers:
-        error_message = (
-            "No DB providers configured. Environment variable DB_PROVIDERS must be set"
-            " to a list of database provider configurations."
-        )
-        logger.error(error_message)
-        return [error_message]
-
     try:
-        return [db_provider.ui_string() for db_provider in db_providers]
-    except Exception:  # pylint: disable=broad-exception-caught
-        error_message = "Failed to get DB provider choices."
-        logger.error(error_message, exc_info=True)
-        return [error_message]
+        choices = [db_provider.ui_string() for db_provider in config.db_providers]
+        if not choices:
+            raise ValueError("No DB provider choices available.")
+        return choices
+
+    except Exception:
+        logger.error("Failed to get DB provider choices.")
+        raise
 
 
-def get_db_provider_from_choice(config: AppConfig, choice: str) -> Optional[DBProvider]:
+def get_db_provider_from_choice(config: AppConfig, choice: str) -> DBProvider:
     """
     Get the DB provider from the choice.
 
@@ -165,22 +152,19 @@ def get_db_provider_from_choice(config: AppConfig, choice: str) -> Optional[DBPr
         choice (str): The choice of DB provider.
 
     Returns:
-        Optional[DBProvider]: The DB provider if found, None otherwise.
-    """
-    for db_provider in config.db_providers:
-        if db_provider.ui_string() == choice:
-            return db_provider
+        DBProvider: The DB provider.
 
-    available_choices = ", ".join(
-        [db_provider.ui_string() for db_provider in config.db_providers]
-    )
-    logger.error(
-        "'%s' not found in the configured DB provider choices: [%s]. Please check the"
-        " DB_PROVIDERS environment variable.",
-        choice,
-        available_choices,
-    )
-    return None
+    Raises:
+        ValueError: If the choice is invalid or the DB provider is not found.
+    """
+    try:
+        for db_provider in config.db_providers:
+            if db_provider.ui_string() == choice:
+                return db_provider
+        raise ValueError("Invalid choice.")
+    except Exception:
+        logger.error("Failed to get DB provider from choice '%s'.", choice)
+        raise
 
 
 def create_config_ui(config: AppConfig) -> ConfigUI:  # pylint: disable=too-many-locals
@@ -195,7 +179,7 @@ def create_config_ui(config: AppConfig) -> ConfigUI:  # pylint: disable=too-many
     """
     with gr.Column(scale=1):
         with gr.Accordion("Configuration", open=True):
-            model_choices = get_model_choices(config.llms)
+            model_choices = get_model_choices(config)
             llm_model_dd = gr.Dropdown(
                 label="LLM Model",
                 choices=model_choices,
@@ -204,7 +188,7 @@ def create_config_ui(config: AppConfig) -> ConfigUI:  # pylint: disable=too-many
                 info="Select the Large Language Model to use for generation.",
             )
 
-            db_provider_choices = get_db_provider_choices(config.db_providers)
+            db_provider_choices = get_db_provider_choices(config)
             rag_provider_dd = gr.Dropdown(
                 label="RAG DB Provider",
                 choices=db_provider_choices,
