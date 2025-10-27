@@ -116,7 +116,7 @@ class AppConfig:
             {
                 "type": "elastic",
                 "index": "docs",
-                "url": "redis://localhost:6379",
+                "url": "http://localhost:6379",
                 "password": "changeme",
                 "user": "elastic",
                 "embedding_model": "sentence-transformers/all-mpnet-base-v2"

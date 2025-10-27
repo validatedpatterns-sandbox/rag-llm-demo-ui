@@ -57,7 +57,6 @@ class PGVectorProvider(DBProvider):
         super().__init__(embeddings)
 
         engine = PGEngine.from_connection_string(url)
-        engine.init_vectorstore_table(collection_name, self.embedding_length)
 
         self.db = PGVectorStore.create_sync(engine, self.embeddings, collection_name)
 
