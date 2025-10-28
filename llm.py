@@ -12,43 +12,15 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class ModelMetadata:
-    """
-    A dataclass containing the model metadata.
-
-    Attributes:
-        vocab_type (int): The type of vocabulary.
-        n_vocab (int): The number of vocabulary.
-        n_ctx_train (int): The number of context training.
-        n_embd (int): The number of embedding.
-        n_params (int): The number of parameters.
-        size (int): The size of the model.
-    """
-
-    vocab_type: int
-    n_vocab: int
-    n_ctx_train: int
-    n_embd: int
-    n_params: int
-    size: int
-
-
-@dataclass
 class Model:
     """
     A dataclass containing the model information.
 
     Attributes:
-        model_id (str): The model ID.
-        created_at (int): The creation time.
-        owned_by (str): The owner of the model.
-        metadata (ModelMetadata): The metadata of the model.
+        id (str): The model ID.
     """
 
-    model_id: str
-    created_at: int
-    owned_by: str
-    metadata: ModelMetadata
+    id: str
 
 
 class LLM:
@@ -88,39 +60,10 @@ class LLM:
             response.raise_for_status()
             data: list[dict] = response.json().get("data", [])
 
-            models = []
-            for raw_model in data:
-                parsed_model = self._parse_model(raw_model)
-                if parsed_model:
-                    models.append(parsed_model)
-
-            return models
+            return [Model(model["id"]) for model in data]
         except Exception:
             logger.error("Failed to fetch models from %s.", str(self._models_url))
             raise
-
-    def _parse_model(self, raw_model: dict) -> Optional[Model]:
-        """
-        Parse the model from the raw model.
-
-        Args:
-            raw_model (dict): The raw model.
-
-        Returns:
-            Optional[Model]: The parsed model if successful, None otherwise.
-        """
-        try:
-            if raw_model["object"] != "model":
-                raise ValueError(f"Invalid model object: {raw_model['object']}")
-            return Model(
-                model_id=raw_model["id"],
-                created_at=raw_model["created"],
-                owned_by=raw_model["owned_by"],
-                metadata=ModelMetadata(**raw_model["meta"]),
-            )
-        except Exception as exception:
-            logger.error("Failed to parse model %s.", raw_model)
-            raise exception
 
     def chat(self, model: str, prompt: str) -> Optional[str]:
         """
